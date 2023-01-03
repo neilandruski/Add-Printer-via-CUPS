@@ -43,7 +43,7 @@ select_driver()
 #Checks printer drivers exist, exit otherwise.
 listdrivers=$(lpinfo -m | grep AltaLink) #list available drivers and grep for our models
 if [[ -z "$listdrivers" ]]; then
-  usage "Pease install the drivers for the AltaLink series printers"
+  usage "Please install the drivers for the AltaLink series printers"
 fi
 
 while getopts s:p:d:-: OPT; do
