@@ -1,6 +1,9 @@
 # Add-Printer-via-CUPS
 Bash script for adding a printer via cups for MacOS devices
 
+1. Select the printer driver you want.
+2. Install the printer driver.
+
 ## **Goal's of the Project**
   - Accept short option *-s, -p, -d*
   - Accept Long option versions as well *--server, --printer, --driver*
@@ -12,3 +15,5 @@ Bash script for adding a printer via cups for MacOS devices
   - Become more familiar with Bash
   - Learn specified option flags coding
   
+
+
