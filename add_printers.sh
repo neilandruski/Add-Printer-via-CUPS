@@ -5,47 +5,52 @@ SERVER=YourDefaultPrintServerHere
 PRINTER=
 DRIVER=
 
-#TODO: Set up dict of printer:drivers
+declare -A printerDrivers
+printerDrivers=(["T802-PS-C01"]="B8145" ["T802-PS-C01"]="B8145")
 
-#Testing print function call.
-#Options passed in are printed first then the needed options to confirm correct input.
-info()
-{
-  echo "$*"
-  echo "$SERVER"
-  echo "$PRINTER"
-  echo "$DRIVER"
-}
-
-#Checks if there are no argument is passed to an option
+# Checks if there are no argument is passed to an option
 needs_arg() { if [[ -z "$OPTARG" ]]; then usage; fi; }
 
-#Help function
-usage()
-{
+info() {
+  echo "[STATUS] $*"
+}
+
+# Help function
+usage() {
   echo $*
   echo ""
-  echo -e "Usage: $0 [ -s,--server=<STRING> ] [ -p,--printer=<STRING> ] [ -d,--driver=<STRING> ]"
+  echo -e "Usage: $0 [ -s <STRING>,--server=<STRING> ] [ -p <STRING>,--printer=<STRING> ] [ -d <STRING>,--driver=<STRING> ]"
   echo -e "\t-s,--server  assign server to use. optional"
   echo -e "\t-p,--printer assign printer to be used. MANDITORY"
   echo -e "\t-d,--driver  assign what model driver to use. optional."
   echo ""
-  exit 2 # Exit script after printing help
+  exit 2
 }
 
-#TODO: Choose driver by Printer name
-#If a driver wasn't selected, pull the know driver from the dictionary
-select_driver()
-{
-   DRIVER="/Library/Printers/PPDs/Contents/Resources/Xerox\ AltaLink\ $1.gz"
+# TODO: Choose driver by Printer name
+# If a driver wasn't selected, pull the know driver from the dictionary
+select_driver() {
+  # $1 is the printer name
+  # Check to see if the driver exists
+  info "No driver specified."
+  info "Determining driver for $1..."
+
+  if [[ -z "${printerDrivers[$1]}" ]]; then
+    usage "No driver found for $1"
+  fi
+
+  DRIVER="${printerDrivers[$1]}"
 }
 
-#Checks printer drivers exist, exit otherwise.
-listdrivers=$(lpinfo -m | grep AltaLink) #list available drivers and grep for our models
+# List available drivers and grep for our models
+listdrivers=$(lpinfo -m | grep AltaLink)
+
+# Checks printer drivers exist, exit otherwise.
 if [[ -z "$listdrivers" ]]; then
-  usage "Please install the drivers for the AltaLink series printers"
+  usage "Please install the drivers for the AltaLink series printers."
 fi
 
+# Get options, if options are missing then exit.
 while getopts s:p:d:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [[ "$OPT" = "-" ]]; then # long option: reformulate OPT and OPTARG
@@ -53,30 +58,49 @@ while getopts s:p:d:-: OPT; do
     OPTARG="${OPTARG#$OPT}"   # extract long option argument (may be empty)
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
+
   case "$OPT" in
-    s | server )   needs_arg; SERVER="$OPTARG" ;;
-    p | printer )  needs_arg; PRINTER="$OPTARG";;
-    d | driver )   needs_arg; DRIVER="$OPTARG" ;;
-    ??* )          usage "Unsupported option"  ;;  # bad long option
-    ? )            usage "Unsupported option"  ;;  # bad short option (error reported via getopts)
+  s | server)
+    needs_arg
+    SERVER="$OPTARG"
+    ;;
+  p | printer)
+    needs_arg
+    PRINTER="$OPTARG"
+    ;;
+  d | driver)
+    needs_arg
+    DRIVER="$OPTARG"
+    ;;
+  ??*) usage "Unsupported option" ;; # bad long option
+  ?) usage "Unsupported option" ;;   # bad short option (error reported via getopts)
   esac
 done
-shift $((OPTIND-1)) # remove parsed options and args from $@ list
+shift $((OPTIND - 1)) # remove parsed options and args from $@ list
 
-#Testing printout
-info "Initial input from User"
+# Testing printout
+info "Received user-input..."
 
 # If no printer is given then we can't assign driver. Exit Script.
-if [[ -z "$PRINTER" ]]; then usage; fi;
+if [[ -z "$PRINTER" ]]; then usage; fi
 
-#No Driver set then use printer to set it
-if [[ -z "$DRIVER" ]]; then select_driver "$PRINTER"; fi;
+info "Received printer arg..."
 
-#Testing prinitout
-info "Updated driver... Going to add printer"
+# No Driver set then use printer to set it
+if [[ -z "$DRIVER" ]]; then select_driver "$PRINTER"; fi
+
+# ---
+# TODO: update the driver
+# info "Listing drivers..."
+# info "Adding printer..."
+# ---
+
+echo "[RESULT] ${DRIVER} is the driver for ${PRINTER}."
+
 exit 2
 
-#Set CUPS to allow shared printers. Then add the printer.
+# Set CUPS to allow shared printers. Then add the printer.
+# LPADMIN reference: https://www.cups.org/doc/man-lpadmin.html
 '
 cupsctl --share-printers
 sudo lpadmin -p $printerName -v lpd://$printServer/$printerName/ -m /Library/Printers/PPDs/Contents/Resources/Xerox\ AltaLink\ $printerDriver.gz -E -o printer-is-shared=true -D "$printerName" -L "$printername" 
